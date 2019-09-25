@@ -12,15 +12,75 @@ library(XML)
 library(rcdk)
 library(rJava)
 
-r <- SPARQL(url = "https://query.wikidata.org/bigdata/namespace/wdq/sparql?query={SPARQL}", query = "
-          SELECT ?alkaneLabel ?alkane WHERE {
-               VALUES ?alkane {wd:Q134192 wd:Q150429 wd:Q150440} .
-                       ?alkane wdt:P31/wdt:P279* wd:Q41581 .
-              SERVICE wikibase:label { bd:serviceParam wikibase:language '[AUTO_LANGUAGE],en' . }
-            }")
+# r <- SPARQL(url = "https://query.wikidata.org/bigdata/namespace/wdq/sparql?query={SPARQL}", query = "
+#           SELECT ?alkaneLabel ?alkane WHERE {
+#                VALUES ?alkane {wd:Q134192 wd:Q150429 wd:Q150440} .
+#                        ?alkane wdt:P31/wdt:P279* wd:Q41581 .
+#               SERVICE wikibase:label { bd:serviceParam wikibase:language '[AUTO_LANGUAGE],en' . }
+#             }")
+
+install.packages("WikidataQueryServiceR")
+library(WikidataQueryServiceR)
+#Alkanes
+query <- 'SELECT ?anes ?anesLabel ?CC ?bp
+        WHERE {
+        ?anes wdt:P31/wdt:P279* wd:Q41581 .
+        ?anes wdt:P233 ?CC .
+        ?anes wdt:P2102 ?bp .
+        }'
+unitquery <- '
+      SELECT DISTINCT ?alkane ?alkaneLabel ?boilingpoint ?unit ?unitLabel ?smiles WHERE {
+          ?alkane (wdt:P31|wdt:P279) wd:Q11173;
+            rdfs:label ?alkaneLabel;
+            wdt:P2102 ?boilingpoint;
+            wdt:P233 ?smiles;
+  OPTIONAL {
+   # unit 
+    ?alkane p:P2102/psv:P2102 [  wikibase:quantityUnit       ?unit ].}
+          FILTER(STRENDS(?alkaneLabel, "ane"))
+          FILTER((LANG(?alkaneLabel)) = "en")
+          SERVICE
+        }'
+r <- query_wikidata(query)
+labels <- c("C", "F", "K")
+units.factor <- factor(r$unit, levels = labels)
+
+
+
 
 ```
 
+```{r}
+
+smiles <- r$CC
+parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
+
+descNames <- c(
+'org.openscience.cdk.qsar.descriptors.molecular.KierHallSmartsDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor'
+)
+
+descs <- eval.desc(parsed_smiles, descNames)
+```
+
+```{r}
+library(pls)
+
+data <- data.frame(r$bp, descs)
+set.seed(42)
+rows <- sample(nrow(data))
+data <- data[rows, ]
+split <- round(nrow(data)*0.8)
+
+train <- data[1:split, ]
+test <- data[(split+1):nrow(data), ]
+ytest <- test$r.bp
+test <- test[, 2:ncol(test)]
+
+
+mdl <- plsr(data$r.bp ~., ncomp = 5, data = data, validation = "CV")
+predicted <- predict(mdl, test)
+```
 ## R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
