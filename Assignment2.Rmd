@@ -6,8 +6,9 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library(XML)
-library(rcdk)
+## 0. Install and load packages
+#library(XML)
+#library(rcdk)
 #library(rJava)
 #install.packages("WikidataQueryServiceR")
 library(WikidataQueryServiceR)
@@ -17,24 +18,10 @@ library(Metrics)
 ```{r query}
 
 
-#Alkanes
+# 1. Query for Alkanes in wikidata: get boilingpoint with units and smiles for each molecule
 query <- 'SELECT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {   ?comp wdt:P31/wdt:P279* wd:Q41581 ;   wdt:P233 ?CC ;     p:P2102 [         ps:P2102 ?bp ;           psv:P2102/wikibase:quantityUnit  ?bpUnit         ] .   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
-unitquery <- '
-      SELECT DISTINCT ?alkane ?alkaneLabel ?boilingpoint ?unit ?unitLabel ?smiles WHERE {
-          ?alkane (wdt:P31|wdt:P279) wd:Q11173;
-            rdfs:label ?alkaneLabel;
-            wdt:P2102 ?boilingpoint;
-            wdt:P233 ?smiles;
-  OPTIONAL {
-   # unit 
-    ?alkane p:P2102/psv:P2102 [  wikibase:quantityUnit       ?unit ].}
-          FILTER(STRENDS(?alkaneLabel, "ane"))
-          FILTER((LANG(?alkaneLabel)) = "en")
-          SERVICE
-        }'
+
 r <- query_wikidata(query)
-labels <- c("C", "F", "K")
-units.factor <- factor(r$unit, levels = labels)
 
 # control for boilingpoint units: convert all to kelvin
 r$bp[r$bpUnitLabel == "degree Celsius"] <- r$bp[r$bpUnitLabel == "degree Celsius"] + 273.15
@@ -45,8 +32,8 @@ r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
 ```
 
-```{r}
-
+```{r descriptors}
+# 2. Parse smiles and compute descriptors
 smiles <- r$CC
 parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 
@@ -63,12 +50,12 @@ descs <- eval.desc(parsed_smiles, descNames)
 
 ```
 
-```{r}
+```{r pls regression}
+# 3. Perform pls regression 
 library(pls)
 library(e1071)
-library(randomForest)
 library(graphics)
-
+# 3.1 split dataset into training and testing datasets
 data <- data.frame(r$bp, descs)
 set.seed(42)
 rows <- sample(nrow(data))
@@ -80,21 +67,24 @@ test <- data[(split+1):nrow(data), ]
 ytrain <- train$r.bp
 ytest <- test$r.bp
 
-# Train pls regression model
+# 3.2 Build null model as the mean of all boilingpoints 
+nullmodel <- mean(train$r.bp)
+errorNM <- rmse(test$r.bp, nullmodel)
+
+# 3.3 Train pls regression model
 #mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
-mdl <- plsr(train$r.bp ~., data = train, validation = "LOO")
+mdl <- plsr(train$r.bp ~., data = train, validation = "CV")
 error <- RMSEP(mdl, estimate = "CV", newdata = test)
 predicted <- predict(mdl, test)
-error <- rmse(predicted, ytest)
+error.pred <- rmse(predicted, ytest)
 error <- vector()
-for (i in 1:5) {
-  
-  error[i] <- rmse(predicted[, ,i], ytest)
-}
+
+
+
 
 ncompo <- c(1:5)
 plot(ncompo, error, type = "p")
-
+#####
 svm <- svm(r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH), data = train)
 svm.pred <- predict(svm, test)
 errror.svm <- rmse(svm.pred, ytest)
