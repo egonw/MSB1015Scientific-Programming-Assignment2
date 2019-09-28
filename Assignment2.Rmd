@@ -9,8 +9,9 @@ output: html_document
 library(XML)
 library(rcdk)
 #library(rJava)
-install.packages("WikidataQueryServiceR")
+#install.packages("WikidataQueryServiceR")
 library(WikidataQueryServiceR)
+library(Metrics)
 ```
 
 ```{r query}
@@ -47,16 +48,26 @@ parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 
 descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.KierHallSmartsDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.HBondDonorCountDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
+
+# control for boilingpoint units: convert all to kelvin
+r$bp[r$bpUnitLabel == "degree Celsius"] <- r$bp[r$bpUnitLabel == "degree Celsius"] + 273.15
+r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
+r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
+r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
+
 
 
 ```
 
 ```{r}
 library(pls)
+library(e1071)
+library(randomForest)
 
 data <- data.frame(r$bp, descs)
 set.seed(42)
@@ -66,12 +77,26 @@ split <- round(nrow(data)*0.8)
 
 train <- data[1:split, ]
 test <- data[(split+1):nrow(data), ]
+ytrain <- train$r.bp
 ytest <- test$r.bp
-test <- test[, 2:ncol(test)]
 
-
-mdl <- plsr(data$r.bp ~., ncomp = 10, data = data, validation = "CV")
+# Train pls regression model
+mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
+mdl <- plsr(train$r.bp ~., data = train, validation = "LOO")
+error <- RMSEP(mdl)
 predicted <- predict(mdl, test)
+error <- rmse(predicted, ytest)
+error <- vector()
+for (i in 1:81) {
+  
+  error[i] <- rmse(predicted[, ,i], ytest)
+}
+
+error
+
+svm <- svm(r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH), data = train)
+svm.pred <- predict(svm, test)
+errror.svm <- rmse(svm.pred, ytest)
 ```
 ## R Markdown
 
