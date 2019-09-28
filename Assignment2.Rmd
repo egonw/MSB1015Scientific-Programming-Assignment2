@@ -6,7 +6,8 @@ output: html_notebook
 ---
 # Introduction
 The assignment is to query wikidata for information about the chemical class alkanes. Therefore it is necessary to design a query that will search for alkanes in bespoken database and retrieve data which is needed for further analysis. This information includes boilingpoint, chemical smiles to infer structural information as well as corresponding units and names. 
-Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. 
+Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. Therefore, chemical features such as wiener paramters [1] and atom count are used to build a regression model. 
+It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
 #library(XML)
@@ -17,13 +18,19 @@ library(WikidataQueryServiceR)
 library(Metrics)
 ```
 # Methods
-The query returns 
+## Query
+The query returns all alkanes where the boilingpoint is available in wikidata. It returns the compound identifiere, compound lable, boilingpoint, boilingpoint unit as well as the boilingpoint unit label. 
+All units are converted into kelvin because it is the SI unit. The is inspected with respect to it's completeness and correctness of boilingpoints. Two boilingpoints were detected to have and comma instead of a point. Therefore, the two compounds had unreasonably high boilingpoints. After correcting for the mistake in wikidata, the data was found to be correct. 
 ```{r query}
 
 
 # 1. Query for Alkanes in wikidata: get boilingpoint with units and smiles for each molecule
-query <- 'SELECT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {   ?comp wdt:P31/wdt:P279* wd:Q41581 ;   wdt:P233 ?CC ;     p:P2102 [         ps:P2102 ?bp ;           psv:P2102/wikibase:quantityUnit  ?bpUnit         ] .   SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
-
+query <- 'SELECT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {   
+          ?comp wdt:P31/wdt:P279* wd:Q41581 ;   
+          wdt:P233 ?CC ;     
+          p:P2102 [         ps:P2102 ?bp ;           
+          psv:P2102/wikibase:quantityUnit  ?bpUnit         ] .   
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
 r <- query_wikidata(query)
 
 # control for boilingpoint units: convert all to kelvin
@@ -34,7 +41,8 @@ r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
 
 ```
-
+## Descriptors
+The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. 
 ```{r descriptors}
 # 2. Parse smiles and compute descriptors
 smiles <- r$CC
@@ -43,7 +51,9 @@ parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.FMFDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
@@ -51,7 +61,12 @@ descs <- eval.desc(parsed_smiles, descNames)
 
 
 ```
+Partial least squares regression (pls) [3] was chosen to perform regression from descriptors to boilingpoint. The dataset is split into training and testing dataset after randomization. pls regression is performed with crossvalidation. Root mean squared error of prediction and correlation of prediction with true results is chosen to assess the performance of the regression model. It is also being compared with the null model which is taking the average of all boilingpoints in the training set to predict the test set. 
+
+Additionally, a support vector machine regression is performed in order to assess reproducibility of the results using a different method. 
+
 # Results
+
 ```{r pls regression}
 # 3. Perform pls regression 
 library(pls)
@@ -88,14 +103,14 @@ plot(predicted[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measur
 plot(predicted[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
 
 # plot error
-ncompo <- c(1:4)
-plot(ncompo, error$val[2:5], type = "p", pch = 16,  xlab = "Number of principle components", 
+ncompo <- c(1:19)
+plot(ncompo, error$val[2:20], type = "l", pch = 16,  xlab = "Number of principle components", 
      ylab = "RMSEP [K]", main = "RMSE of Prediction against Number of Principle Components")
 # correlation of results 
-for (i in 1:4) {
+for (i in 1:19) {
   corr[i] <- cor(predicted[,,i], ytest)
 }
-plot(ncompo[1:4], corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
+plot(ncompo[1:19], corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
      main = "Correlation of Prediction against Number of Principle Components")
 
 
@@ -112,3 +127,9 @@ corr <- cor(predicted[,,4], ytest)
 # References 
 
 [1] Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
+
+[2] Guha, R. (2007). 'Chemical Informatics Functionality in R'. Journal of Statistical Software 6(18)
+
+[3] Bjørn-Helge Mevik, Ron Wehrens and Kristian Hovde Liland (2019). pls: Partial Least
+    Squares and Principal Component Regression. R package version 2.7-1.
+    https://CRAN.R-project.org/package=pls
