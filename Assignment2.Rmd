@@ -5,7 +5,8 @@ date: "9/23/2019"
 output: html_notebook
 ---
 # Introduction
-The assignment is to query wikidata for information about the chemical class, alkanes. Therefore it is necessary to design a query that will 
+The assignment is to query wikidata for information about the chemical class alkanes. Therefore it is necessary to design a query that will search for alkanes in bespoken database and retrieve data which is needed for further analysis. This information includes boilingpoint, chemical smiles to infer structural information as well as corresponding units and names. 
+Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
 #library(XML)
