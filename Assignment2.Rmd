@@ -2,19 +2,21 @@
 title: "Assignment2"
 author: "Raphael Stolpe"
 date: "9/23/2019"
-output: html_document
+output: html_notebook
 ---
-
+# Introduction
+The assignment is to query wikidata for information about the chemical class, alkanes. Therefore it is necessary to design a query that will 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
 #library(XML)
-#library(rcdk)
+library(rcdk)
 #library(rJava)
 #install.packages("WikidataQueryServiceR")
 library(WikidataQueryServiceR)
 library(Metrics)
 ```
-
+# Methods
+The query returns 
 ```{r query}
 
 
@@ -48,7 +50,7 @@ descs <- eval.desc(parsed_smiles, descNames)
 
 
 ```
-
+# Results
 ```{r pls regression}
 # 3. Perform pls regression 
 library(pls)
@@ -85,18 +87,27 @@ plot(predicted[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measur
 plot(predicted[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
 
 # plot error
-ncompo <- c(0:4)
-plot(ncompo, error$val, type = "p", xlab = "Number of principle components", ylab = "RMSEP [K]",
-     main = "RMSE of Prediction against Number of Principle Components")
+ncompo <- c(1:4)
+plot(ncompo, error$val[2:5], type = "p", pch = 16,  xlab = "Number of principle components", 
+     ylab = "RMSEP [K]", main = "RMSE of Prediction against Number of Principle Components")
+# correlation of results 
+for (i in 1:4) {
+  corr[i] <- cor(predicted[,,i], ytest)
+}
+plot(ncompo[1:4], corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
+     main = "Correlation of Prediction against Number of Principle Components")
 
-##### SVM 
+
+##### SVM for investigating reproducibility with different methods
 svm <- svm(train$r.bp ~., data = train)
 predicted.svm <- predict(svm, test)
 error.pred <- rmse(predicted.svm, ytest)
+plot(predicted.svm, ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression using Support Vector Machine Algorithm")
+corr <- cor(predicted[,,4], ytest)
 ```
 
-## Including Plots
 
+# Discussion
 # References 
 
-Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
+[1] Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
