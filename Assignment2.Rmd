@@ -39,7 +39,8 @@ parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 
 descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
@@ -78,15 +79,20 @@ error.pred <- rmse(predicted, ytest)
 plot(mdl$residuals)
 ## Visualization
 # plot predicted against actual values
-plot(predicted[,,2], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]")
+plot(predicted[,,1], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with one PC")
+plot(predicted[,,2], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with two PCs")
+plot(predicted[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with three PCs")
+plot(predicted[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
 
-ncompo <- c(1:5)
-plot(ncompo, error, type = "p")
-scatterplot()
-#####
-svm <- svm(r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH), data = train)
-svm.pred <- predict(svm, test)
-errror.svm <- rmse(svm.pred, ytest)
+# plot error
+ncompo <- c(0:4)
+plot(ncompo, error$val, type = "p", xlab = "Number of principle components", ylab = "RMSEP [K]",
+     main = "RMSE of Prediction against Number of Principle Components")
+
+##### SVM 
+svm <- svm(train$r.bp ~., data = train)
+predicted.svm <- predict(svm, test)
+error.pred <- rmse(predicted.svm, ytest)
 ```
 
 ## Including Plots
