@@ -39,9 +39,7 @@ parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 
 descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.WeightDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.FragmentComplexityDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
@@ -77,26 +75,18 @@ mdl <- plsr(train$r.bp ~., data = train, validation = "CV")
 error <- RMSEP(mdl, estimate = "CV", newdata = test)
 predicted <- predict(mdl, test)
 error.pred <- rmse(predicted, ytest)
-error <- vector()
-
-
-
+plot(mdl$residuals)
+## Visualization
+# plot predicted against actual values
+plot(predicted[,,2], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]")
 
 ncompo <- c(1:5)
 plot(ncompo, error, type = "p")
+scatterplot()
 #####
 svm <- svm(r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH), data = train)
 svm.pred <- predict(svm, test)
 errror.svm <- rmse(svm.pred, ytest)
-```
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
 ## Including Plots
