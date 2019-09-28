@@ -36,7 +36,11 @@ r <- query_wikidata(query)
 labels <- c("C", "F", "K")
 units.factor <- factor(r$unit, levels = labels)
 
-
+# control for boilingpoint units: convert all to kelvin
+r$bp[r$bpUnitLabel == "degree Celsius"] <- r$bp[r$bpUnitLabel == "degree Celsius"] + 273.15
+r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
+r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
+r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
 
 ```
@@ -47,18 +51,13 @@ smiles <- r$CC
 parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
 
 descNames <- c(
-'org.openscience.cdk.qsar.descriptors.molecular.KierHallSmartsDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.HBondDonorCountDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.WeightDescriptor',
+'org.openscience.cdk.qsar.descriptors.molecular.FragmentComplexityDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
-
-# control for boilingpoint units: convert all to kelvin
-r$bp[r$bpUnitLabel == "degree Celsius"] <- r$bp[r$bpUnitLabel == "degree Celsius"] + 273.15
-r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
-r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
-r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
 
 
@@ -68,12 +67,13 @@ r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 library(pls)
 library(e1071)
 library(randomForest)
+library(graphics)
 
 data <- data.frame(r$bp, descs)
 set.seed(42)
 rows <- sample(nrow(data))
 data <- data[rows, ]
-split <- round(nrow(data)*0.8)
+split <- round(nrow(data)*0.75)
 
 train <- data[1:split, ]
 test <- data[(split+1):nrow(data), ]
@@ -81,18 +81,19 @@ ytrain <- train$r.bp
 ytest <- test$r.bp
 
 # Train pls regression model
-mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
+#mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
 mdl <- plsr(train$r.bp ~., data = train, validation = "LOO")
-error <- RMSEP(mdl)
+error <- RMSEP(mdl, estimate = "CV", newdata = test)
 predicted <- predict(mdl, test)
 error <- rmse(predicted, ytest)
 error <- vector()
-for (i in 1:81) {
+for (i in 1:5) {
   
   error[i] <- rmse(predicted[, ,i], ytest)
 }
 
-error
+ncompo <- c(1:5)
+plot(ncompo, error, type = "p")
 
 svm <- svm(r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH), data = train)
 svm.pred <- predict(svm, test)
@@ -110,10 +111,6 @@ summary(cars)
 
 ## Including Plots
 
-You can also embed plots, for example:
+# References 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
