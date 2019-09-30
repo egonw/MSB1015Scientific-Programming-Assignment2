@@ -10,12 +10,16 @@ Subsqequently, the assignment is to build a model that can predict the boilingpo
 It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
-#library(XML)
+packages <- c("rcdk", "WikidataQueryServiceR", "Metrics", "pls", "e1071", "graphics")
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  install.packages(setdiff(packages, rownames(installed.packages())))  
+}
 library(rcdk)
-#library(rJava)
-#install.packages("WikidataQueryServiceR")
 library(WikidataQueryServiceR)
 library(Metrics)
+library(pls)
+library(e1071)
+library(graphics)
 ```
 # Methods
 ## Query
@@ -39,7 +43,8 @@ r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
 r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
 r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
-
+# assess the data!!!!! -> report mean, max, min, variance
+# report test/train sizes, value destirbution
 ```
 ## Descriptors
 The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. 
@@ -69,9 +74,7 @@ Additionally, a support vector machine regression is performed in order to asses
 
 ```{r pls regression}
 # 3. Perform pls regression 
-library(pls)
-library(e1071)
-library(graphics)
+
 # 3.1 split dataset into training and testing datasets
 data <- data.frame(r$bp, descs)
 set.seed(42)
