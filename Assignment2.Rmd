@@ -6,7 +6,7 @@ output: html_notebook
 ---
 # Introduction
 The assignment is to query wikidata for information about the chemical class alkanes. Therefore it is necessary to design a query that will search for alkanes in bespoken database and retrieve data which is needed for further analysis. This information includes boilingpoint, chemical smiles to infer structural information as well as corresponding units and names. 
-Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. Therefore, chemical features such as wiener paramters [1] and atom count are used to build a regression model. 
+Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. In other words the assignment is derive physical properties from a compounds chemical structure. Therefore, chemical features such as wiener paramters [1] and atom count are used to build a regression model. 
 It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
@@ -19,7 +19,7 @@ library(Metrics)
 ```
 # Methods
 ## Query
-The query returns all alkanes where the boilingpoint is available in wikidata. It returns the compound identifiere, compound lable, boilingpoint, boilingpoint unit as well as the boilingpoint unit label. 
+The query on wikidata using the WikidataQueryServiceR [4] package returns all alkanes where the boilingpoint is available in wikidata. It returns the compound identifier, compound label, boilingpoint, boilingpoint unit as well as the boilingpoint unit label. 
 All units are converted into kelvin because it is the SI unit. The is inspected with respect to it's completeness and correctness of boilingpoints. Two boilingpoints were detected to have and comma instead of a point. Therefore, the two compounds had unreasonably high boilingpoints. After correcting for the mistake in wikidata, the data was found to be correct. 
 ```{r query}
 
@@ -133,3 +133,7 @@ corr <- cor(predicted[,,4], ytest)
 [3] Bjørn-Helge Mevik, Ron Wehrens and Kristian Hovde Liland (2019). pls: Partial Least
     Squares and Principal Component Regression. R package version 2.7-1.
     https://CRAN.R-project.org/package=pls
+
+[4] Mikhail Popov (2017). WikidataQueryServiceR: API Client Library for 'Wikidata Query
+  Service'. R package version 0.1.1.
+  https://CRAN.R-project.org/package=WikidataQueryServiceR
