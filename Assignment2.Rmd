@@ -10,7 +10,7 @@ Subsqequently, the assignment is to build a model that can predict the boilingpo
 It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
-packages <- c("rcdk", "WikidataQueryServiceR", "Metrics", "pls", "e1071", "graphics")
+packages <- c("rcdk", "WikidataQueryServiceR", "Metrics", "pls", "graphics")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))  
 }
@@ -18,7 +18,6 @@ library(rcdk)
 library(WikidataQueryServiceR)
 library(Metrics)
 library(pls)
-library(e1071)
 library(graphics)
 ```
 # Methods
@@ -29,7 +28,7 @@ All units are converted into kelvin because it is the SI unit. The is inspected 
 
 
 # 1. Query for Alkanes in wikidata: get boilingpoint with units and smiles for each molecule
-query <- 'SELECT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {   
+query <- 'SELECT DISTINCT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {   
           ?comp wdt:P31/wdt:P279* wd:Q41581 ;   
           wdt:P233 ?CC ;     
           p:P2102 [         ps:P2102 ?bp ;           
@@ -43,6 +42,9 @@ r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
 r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
 r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
 
+print(cat("Mean boilingpoint:", mean(r$bp)))
+print(cat("Smallest boilingpoint:", min(r$bp)))
+print(cat("Highest boilingpoint:", max(r$bp)))
 # assess the data!!!!! -> report mean, max, min, variance
 # report test/train sizes, value destirbution
 ```
@@ -57,14 +59,14 @@ descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.FMFDescriptor'
+'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
 )
 
 descs <- eval.desc(parsed_smiles, descNames)
 
-
-
+constant <- names(descs[,apply(descs, 2, sd, na.rm=TRUE) != 0])
+descs <- descs[, names(descs) %in% constant]
+descs <- descs[, - 14] 
 ```
 Partial least squares regression (pls) [3] was chosen to perform regression from descriptors to boilingpoint. The dataset is split into training and testing dataset after randomization. pls regression is performed with crossvalidation. Root mean squared error of prediction and correlation of prediction with true results is chosen to assess the performance of the regression model. It is also being compared with the null model which is taking the average of all boilingpoints in the training set to predict the test set. 
 
@@ -80,12 +82,16 @@ data <- data.frame(r$bp, descs)
 set.seed(42)
 rows <- sample(nrow(data))
 data <- data[rows, ]
-split <- round(nrow(data)*0.75)
+split <- round(nrow(data)*0.7)
 
 train <- data[1:split, ]
 test <- data[(split+1):nrow(data), ]
 ytrain <- train$r.bp
 ytest <- test$r.bp
+
+# report sizes of train and test 
+print(cat("Number of samples in trainingset: ", nrow(train)))
+print(cat("Number of samples in testset: ", nrow(test)))
 
 # 3.2 Build null model as the mean of all boilingpoints 
 nullmodel <- mean(train$r.bp)
@@ -94,10 +100,10 @@ errorNM <- rmse(test$r.bp, nullmodel)
 # 3.3 Train pls regression model
 #mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
 mdl <- plsr(train$r.bp ~., data = train, validation = "CV")
-error <- RMSEP(mdl, estimate = "CV", newdata = test)
+error <- RMSEP(mdl, estimate = "CV") # <- select two principle components
 predicted <- predict(mdl, test)
 error.pred <- rmse(predicted, ytest)
-plot(mdl$residuals)
+#plot(mdl$residuals)
 ## Visualization
 # plot predicted against actual values
 plot(predicted[,,1], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with one PC")
@@ -110,19 +116,21 @@ ncompo <- c(1:19)
 plot(ncompo, error$val[2:20], type = "l", pch = 16,  xlab = "Number of principle components", 
      ylab = "RMSEP [K]", main = "RMSE of Prediction against Number of Principle Components")
 # correlation of results 
+corr <- c()
 for (i in 1:19) {
   corr[i] <- cor(predicted[,,i], ytest)
 }
 plot(ncompo[1:19], corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
      main = "Correlation of Prediction against Number of Principle Components")
-
-
-##### SVM for investigating reproducibility with different methods
+library(e1071)
+library(Metrics)
+library(randomForest)
 svm <- svm(train$r.bp ~., data = train)
-predicted.svm <- predict(svm, test)
-error.pred <- rmse(predicted.svm, ytest)
-plot(predicted.svm, ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression using Support Vector Machine Algorithm")
-corr <- cor(predicted[,,4], ytest)
+svm.pred <- predict(svm, test)
+error.svm <- rmse(svm.pred, ytest)
+rf <- randomForest(train$r.bp~., data = train)
+rf.pred <- predict(rf, test)
+error.rf <- rmse(rf.pred, ytest)
 ```
 
 
