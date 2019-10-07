@@ -58,9 +58,7 @@ descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
 )
 descs <- computeDescriptors(r, descNames)
-
 descs <- removeConstantDesc(descs)
-
 descs <- descs[, - 14] 
 
 

@@ -1,5 +1,6 @@
+# This function extracts smiles from query results object and computes descriptors
+# based on a selected list of descriptors. 
 computeDescriptors <- function (r, descNames) {
-  # 2. Parse smiles and compute descriptors
   smiles <- r$CC
   parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
   
