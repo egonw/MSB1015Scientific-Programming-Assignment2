@@ -19,6 +19,9 @@ library(WikidataQueryServiceR)
 library(Metrics)
 library(pls)
 library(graphics)
+source("Unit_conversion_to_Kelvin.R")
+source("computeDescriptors.R")
+source("removeConstantDesc.R")
 ```
 # Methods
 ## Query
@@ -36,11 +39,7 @@ query <- 'SELECT DISTINCT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {
           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
 r <- query_wikidata(query)
 
-# control for boilingpoint units: convert all to kelvin
-r$bp[r$bpUnitLabel == "degree Celsius"] <- r$bp[r$bpUnitLabel == "degree Celsius"] + 273.15
-r$bpUnitLabel[r$bpUnitLabel == "degree Celsius"] <- "kelvin"
-r$bp[r$bpUnitLabel == "degree Fahrenheit"] <- (r$bp[r$bpUnitLabel == "degree Fahrenheit"]-32)*5/9 + 273.15
-r$bpUnitLabel[r$bpUnitLabel == "degree Fahrenheit"] <- "kelvin"
+r <- Unit_conversion_to_Kelvin(r)
 
 print(cat("Mean boilingpoint:", mean(r$bp)))
 print(cat("Smallest boilingpoint:", min(r$bp)))
@@ -52,21 +51,19 @@ print(cat("Highest boilingpoint:", max(r$bp)))
 The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. 
 ```{r descriptors}
 # 2. Parse smiles and compute descriptors
-smiles <- r$CC
-parsed_smiles <- parse.smiles(smiles, kekulise=TRUE)
-
 descNames <- c(
 'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
 'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
 )
+descs <- computeDescriptors(r, descNames)
 
-descs <- eval.desc(parsed_smiles, descNames)
+descs <- removeConstantDesc(descs)
 
-constant <- names(descs[,apply(descs, 2, sd, na.rm=TRUE) != 0])
-descs <- descs[, names(descs) %in% constant]
 descs <- descs[, - 14] 
+
+
 ```
 Partial least squares regression (pls) [3] was chosen to perform regression from descriptors to boilingpoint. The dataset is split into training and testing dataset after randomization. pls regression is performed with crossvalidation. Root mean squared error of prediction and correlation of prediction with true results is chosen to assess the performance of the regression model. It is also being compared with the null model which is taking the average of all boilingpoints in the training set to predict the test set. 
 
