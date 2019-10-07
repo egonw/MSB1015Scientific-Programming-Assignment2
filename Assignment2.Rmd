@@ -52,11 +52,11 @@ The R package rcdk [2] was used to compute chemical compound descriptors based o
 ```{r descriptors}
 # 2. Parse smiles and compute descriptors
 descNames <- c(
-'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
-'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
-)
+  'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
+  'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
+  'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
+  'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
+  )
 descs <- computeDescriptors(r, descNames)
 descs <- removeConstantDesc(descs)
 descs <- descs[, - 14] 
