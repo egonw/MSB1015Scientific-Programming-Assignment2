@@ -40,12 +40,12 @@ query <- 'SELECT DISTINCT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {
 r <- query_wikidata(query)
 r <- Unit_conversion_to_Kelvin(r)
 
-print(cat("Mean boilingpoint:", mean(r$bp)))
-print(cat("Smallest boilingpoint:", min(r$bp)))
-print(cat("Highest boilingpoint:", max(r$bp)))
+print(paste("Mean boilingpoint:", round(mean(r$bp)),"K"))
+print(paste("Smallest boilingpoint:", round(min(r$bp)),"K"))
+print(paste("Highest boilingpoint:", round(max(r$bp)),"K"))
 ```
 ## Descriptors
-The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. 
+The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. However the number of descriptors as well as the type of descriptors will be subject to change for future users. 
 ```{r descriptors}
 # 2. Parse smiles and compute descriptors
 # Selection of suitable selectors is crucial to be able to predict the boiling point of chemical
@@ -91,8 +91,8 @@ ytrain <- train$r.bp
 ytest <- test$r.bp
 
 # report sizes of train and test 
-print(cat("Number of samples in trainingset: ", nrow(train)))
-print(cat("Number of samples in testset: ", nrow(test)))
+print(paste("Number of samples in trainingset: ", nrow(train)))
+print(paste("Number of samples in testset: ", nrow(test)))
 
 # 3.2 Build null model as the mean of all boilingpoints 
 nullmodel <- mean(train$r.bp)
@@ -113,19 +113,20 @@ plot(predicted[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measur
 plot(predicted[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
 
 # plot error
-ncompo <- c(1:ncol(data))
-plot(ncompo, error$val, type = "l", pch = 16,  xlab = "Number of principle components",
+# first error is the error of the null model and does not use any principle component from the pca.
+# Thus it will be excluded from this plot. 
+plot(error$val[,,2:ncol(data)], type = "l", pch = 16,  xlab = "Number of principle components",
      ylab = "RMSEP [K]", main = "RMSE of Prediction against Number of Principle Components")
+print(paste("Error of the nullmodel:", round(mean(error$val[,,1])),"K"))
 # correlation of results 
 corr <- c()
-for (i in 1:ncol(data)) {
-  corr[i] <- cor(predicted[,,i-1], ytest)
+for (i in 1:ncol(data)-1) {
+  corr[i] <- cor(predicted[,,i], ytest)
 }
-plot(ncompo[1:ncol(data)], corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
+plot(corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
      main = "Correlation of Prediction against Number of Principle Components")
 library(e1071)
 library(Metrics)
-library(randomForest)
 svm <- svm(train$r.bp ~., data = train)
 svm.pred <- predict(svm, test)
 error.svm <- rmse(svm.pred, ytest)
