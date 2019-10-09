@@ -48,7 +48,11 @@ print(cat("Highest boilingpoint:", max(r$bp)))
 The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. 
 ```{r descriptors}
 # 2. Parse smiles and compute descriptors
-# Selection of suitable selectors is crucial to be able to predict the boiling point of chemical compound with reasonable accuracy. The function get.desc.names() will print a list of descriptors available within the rcdk package. The user of this code may chose any set of descriptors that is considered to contain information relevant to predicting the boiling point. Adding it to the list of descriptor names will allow for computation of descriptors from the smiles. 
+# Selection of suitable selectors is crucial to be able to predict the boiling point of chemical
+# compound with reasonable accuracy. The function get.desc.names() will print a list of descriptors
+# available within the rcdk package. The user of this code may chose any set of descriptors that is
+# considered to contain information relevant to predicting the boiling point. Adding it to the list
+# of descriptor names will allow for computation of descriptors from the smiles. 
 descNames <- c(
   'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
   'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
@@ -71,7 +75,10 @@ When taking the four descriptors that are set by default, the RMSEP on the train
 # 3. Perform pls regression 
 
 # 3.1 split dataset into training and testing datasets
-# Randomization has great influence on how the model is built (trainingset) and how it performs on the testset. Because the dataset is fairly small the way in which randomization occurs (set.seed()) is esential fro reproducibility of results. It is important to keep in mind that a different seed might produce different results. 
+# Randomization has great influence on how the model is built (trainingset) and how it performs on 
+# the testset. Because the dataset is fairly small the way in which randomization occurs (set.seed())
+# is esential fro reproducibility of results. It is important to keep in mind that a different seed 
+# might produce different results. 
 data <- data.frame(r$bp, descs)
 set.seed(42)
 rows <- sample(nrow(data))
