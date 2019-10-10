@@ -5,8 +5,8 @@ date: "9/23/2019"
 output: html_notebook
 ---
 # Introduction
-The assignment is to query wikidata for information about the chemical class alkanes. Therefore it is necessary to design a query that will search for alkanes in bespoken database and retrieve data which is needed for further analysis. This information includes boilingpoint, chemical smiles to infer structural information as well as corresponding units and names. 
-Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. In other words the assignment is derive physical properties from a compounds chemical structure. Therefore, chemical features such as wiener paramters [1] and atom count are used to build a regression model. 
+The assignment is to query wikidata for information about the chemical class alkanes. Therefore, it is necessary to design a query that will search for alkanes in bespoken database and retrieve data which is needed for further analysis. This information includes boilingpoint, chemical smiles to infer structural information as well as corresponding units and names. 
+Subsqequently, the assignment is to build a model that can predict the boilingpoint of a chemical compound based on its chemical composition. In other words the assignment is to derive physical properties from a compounds chemical structure. Therefore, chemical features such as wiener paramters [1] and atom count are used to build a regression model. 
 It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
@@ -37,11 +37,13 @@ query <- 'SELECT DISTINCT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {
           p:P2102 [         ps:P2102 ?bp ;           
           psv:P2102/wikibase:quantityUnit  ?bpUnit         ] .   
           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
+# Results of query as well as results after unit conversion are stored in r
 r <- query_wikidata(query)
 r <- Unit_conversion_to_Kelvin(r)
-
+```
+``` {r metrics, echo=FALSE}
 print(paste("Mean boilingpoint:", round(mean(r$bp)),"K"))
-print(paste("Smallest boilingpoint:", round(min(r$bp)),"K"))
+print(paste("Lowest boilingpoint:", round(min(r$bp)),"K"))
 print(paste("Highest boilingpoint:", round(max(r$bp)),"K"))
 ```
 ## Descriptors
@@ -89,17 +91,20 @@ train <- data[1:split, ]
 test <- data[(split+1):nrow(data), ]
 ytrain <- train$r.bp
 ytest <- test$r.bp
+```
 
+```  {r report, echo =FALSE}
 # report sizes of train and test 
 print(paste("Number of samples in trainingset: ", nrow(train)))
 print(paste("Number of samples in testset: ", nrow(test)))
+```
 
+``` {r model}
 # 3.2 Build null model as the mean of all boilingpoints 
 nullmodel <- mean(train$r.bp)
 errorNM <- rmse(test$r.bp, nullmodel)
 
 # 3.3 Train pls regression model
-#mdl <- plsr(train$r.bp ~ (apol + khs.ssCH2 + khs.sCH3 + khs.sssCH + nHBDon), data = train, ncomp = 5, validation = "LOO")
 mdl <- plsr(train$r.bp ~., data = train, validation = "CV")
 error <- RMSEP(mdl, estimate = "CV") # <- select two principle components
 predicted <- predict(mdl, test)
@@ -130,9 +135,6 @@ library(Metrics)
 svm <- svm(train$r.bp ~., data = train)
 svm.pred <- predict(svm, test)
 error.svm <- rmse(svm.pred, ytest)
-rf <- randomForest(train$r.bp~., data = train)
-rf.pred <- predict(rf, test)
-error.rf <- rmse(rf.pred, ytest)
 ```
 
 
