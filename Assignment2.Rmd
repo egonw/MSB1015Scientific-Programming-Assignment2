@@ -37,14 +37,14 @@ query <- 'SELECT DISTINCT ?comp ?compLabel ?bp ?bpUnit ?bpUnitLabel ?CC WHERE {
           p:P2102 [         ps:P2102 ?bp ;           
           psv:P2102/wikibase:quantityUnit  ?bpUnit         ] .   
           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". } } '
-# Results of query as well as results after unit conversion are stored in r
-r <- query_wikidata(query)
-r <- Unit_conversion_to_Kelvin(r)
+# Results of query as well as results after unit conversion are stored in QueryResults
+QueryResults <- query_wikidata(query)
+QueryResults <- Unit_conversion_to_Kelvin(QueryResults)
 ```
 ``` {r metrics, echo=FALSE}
-print(paste("Mean boilingpoint:", round(mean(r$bp)),"K"))
-print(paste("Lowest boilingpoint:", round(min(r$bp)),"K"))
-print(paste("Highest boilingpoint:", round(max(r$bp)),"K"))
+print(paste("Mean boilingpoint:", round(mean(QueryResults$bp)),"K"))
+print(paste("Lowest boilingpoint:", round(min(QueryResults$bp)),"K"))
+print(paste("Highest boilingpoint:", round(max(QueryResults$bp)),"K"))
 ```
 ## Descriptors
 The R package rcdk [2] was used to compute chemical compound descriptors based on smiles. As descriptors Wiener numbers [1], apolarity and atom count were chosen as descriptors. However the number of descriptors as well as the type of descriptors will be subject to change for future users. 
@@ -55,15 +55,15 @@ The R package rcdk [2] was used to compute chemical compound descriptors based o
 # available within the rcdk package. The user of this code may chose any set of descriptors that is
 # considered to contain information relevant to predicting the boiling point. Adding it to the list
 # of descriptor names will allow for computation of descriptors from the smiles. 
-descNames <- c(
+descriptorNames <- c(
   'org.openscience.cdk.qsar.descriptors.molecular.WienerNumbersDescriptor',
   'org.openscience.cdk.qsar.descriptors.molecular.APolDescriptor',
   'org.openscience.cdk.qsar.descriptors.molecular.AtomCountDescriptor',
   'org.openscience.cdk.qsar.descriptors.molecular.MDEDescriptor'
   )
-descs <- computeDescriptors(r, descNames)
-descs <- removeConstantDesc(descs)
-descs <- descs[, - 14] 
+descriptors <- computeDescriptors(QueryResults, descriptorNames)
+descriptors <- removeConstantDesc(descriptors)
+descriptors <- descriptors[, - 14] 
 
 
 ```
@@ -81,16 +81,16 @@ When taking the four descriptors that are set by default, the RMSEP on the train
 # the testset. Because the dataset is fairly small the way in which randomization occurs (set.seed())
 # is esential fro reproducibility of results. It is important to keep in mind that a different seed 
 # might produce different results. 
-data <- data.frame(r$bp, descs)
+PredictorsWithResponse <- data.frame(QueryResults$bp, descriptors)
 set.seed(42)
-rows <- sample(nrow(data))
-data <- data[rows, ]
-split <- round(nrow(data)*0.7)
+rows <- sample(nrow(PredictorsWithResponse))
+PredictorsWithResponse <- PredictorsWithResponse[rows, ]
+split <- round(nrow(PredictorsWithResponse)*0.7)
 
-train <- data[1:split, ]
-test <- data[(split+1):nrow(data), ]
-ytrain <- train$r.bp
-ytest <- test$r.bp
+train <- PredictorsWithResponse[1:split, ]
+test <- PredictorsWithResponse[(split+1):nrow(PredictorsWithResponse), ]
+ytrain <- train$QueryResults.bp
+ytest <- test$QueryResults.bp
 ```
 
 ```  {r report, echo =FALSE}
@@ -101,40 +101,47 @@ print(paste("Number of samples in testset: ", nrow(test)))
 
 ``` {r model}
 # 3.2 Build null model as the mean of all boilingpoints 
-nullmodel <- mean(train$r.bp)
-errorNM <- rmse(test$r.bp, nullmodel)
+nullmodel <- mean(train$QueryResults.bp)
+errorofNullmodel <- rmse(test$QueryResults.bp, nullmodel)
 
 # 3.3 Train pls regression model
-mdl <- plsr(train$r.bp ~., data = train, validation = "CV")
-error <- RMSEP(mdl, estimate = "CV") # <- select two principle components
-predicted <- predict(mdl, test)
-error.pred <- rmse(predicted, ytest)
+plsModel <- plsr(train$QueryResults.bp ~., data = train, validation = "CV")
+errorPLSregression <- RMSEP(plsModel, estimate = "CV") # <- select two principle components
+predictedbyPLS <- predict(plsModel, test)
+RMSEPofPLSonTest <- rmse(predictedbyPLS, ytest)
 #plot(mdl$residuals)
 ## Visualization
 # plot predicted against actual values
-plot(predicted[,,1], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with one PC")
-plot(predicted[,,2], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with two PCs")
-plot(predicted[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with three PCs")
-plot(predicted[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
+plot(predictedbyPLS[,,1], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with one PC")
+plot(predictedbyPLS[,,2], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with two PCs")
+plot(predictedbyPLS[,,3], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with three PCs")
+plot(predictedbyPLS[,,4], ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression with four PCs")
 
 # plot error
 # first error is the error of the null model and does not use any principle component from the pca.
 # Thus it will be excluded from this plot. 
-plot(error$val[,,2:ncol(data)], type = "l", pch = 16,  xlab = "Number of principle components",
+plot(errorPLSregression$val[,,2:ncol(data)], type = "l", pch = 16,  xlab = "Number of principle components",
      ylab = "RMSEP [K]", main = "RMSE of Prediction against Number of Principle Components")
-print(paste("Error of the nullmodel:", round(mean(error$val[,,1])),"K"))
+
 # correlation of results 
-corr <- c()
-for (i in 1:ncol(data)-1) {
-  corr[i] <- cor(predicted[,,i], ytest)
+correlationPredictedvActual <- c()
+for (i in 1:ncol(PredictorsWithResponse)-1) {
+  correlationPredictedvActual[i] <- cor(predictedbyPLS[,,i], ytest)
 }
-plot(corr, type = "p", xlab = "Number of principle components", ylab = "Correlation",
+plot(correlationPredictedvActual, type = "p", xlab = "Number of principle components", 
+     ylab = "Correlation",
      main = "Correlation of Prediction against Number of Principle Components")
 library(e1071)
 library(Metrics)
-svm <- svm(train$r.bp ~., data = train)
-svm.pred <- predict(svm, test)
-error.svm <- rmse(svm.pred, ytest)
+svmModel <- svm(train$QueryResults.bp ~., data = train)
+svm.predicted <- predict(svmModel, test)
+errorbySVM <- rmse(svm.predicted, ytest)
+```
+``` {r, echo = FALSE}
+print(paste("Error of the nullmodel built by plsr:", round(mean(errorPLSregression$val[,,1])),"K"))
+print(paste("Error of the nullmodel:", round(errorofNullmodel), "K"))
+print(paste("Error of pls regression using two PCs:", round(mean(errorPLSregression$val[,,3])),"K"))
+print(paste("Error of the support vector machine regression:", round(errorbySVM), "K"))
 ```
 
 
