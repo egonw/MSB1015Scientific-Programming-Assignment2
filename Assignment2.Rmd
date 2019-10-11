@@ -10,7 +10,8 @@ Subsqequently, the assignment is to build a model that can predict the boilingpo
 It is assessed how good the model can predict the boilingpoint. 
 ```{r setup, include=FALSE}
 ## 0. Install and load packages
-packages <- c("rcdk", "WikidataQueryServiceR", "Metrics", "pls", "graphics")
+# Please run this code section to ensure all necessary packages are installed. Also make sure that the function files below are in the same directory as this file before executing.
+packages <- c("rcdk", "WikidataQueryServiceR", "Metrics", "pls", "graphics", "e1071")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))  
 }
@@ -19,6 +20,7 @@ library(WikidataQueryServiceR)
 library(Metrics)
 library(pls)
 library(graphics)
+library(e1071)
 source("Unit_conversion_to_Kelvin.R")
 source("computeDescriptors.R")
 source("removeConstantDesc.R")
@@ -63,6 +65,9 @@ descriptorNames <- c(
   )
 descriptors <- computeDescriptors(QueryResults, descriptorNames)
 descriptors <- removeConstantDesc(descriptors)
+# For some reason descriptor MDEC.34 does not get removed although it is a constant clumn. 
+# Therefore, it is necessary to track it down and remove it manually when using MDED descriptors. 
+# Please comment the line below or adjust, if a different use of descriptors is intended.
 descriptors <- descriptors[, - 14] 
 
 
@@ -131,8 +136,7 @@ for (i in 1:ncol(PredictorsWithResponse)-1) {
 plot(correlationPredictedvActual, type = "p", xlab = "Number of principle components", 
      ylab = "Correlation",
      main = "Correlation of Prediction against Number of Principle Components")
-library(e1071)
-library(Metrics)
+# Build svm model for comparison
 svmModel <- svm(train$QueryResults.bp ~., data = train)
 svm.predicted <- predict(svmModel, test)
 errorbySVM <- rmse(svm.predicted, ytest)
