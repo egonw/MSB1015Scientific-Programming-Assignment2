@@ -74,10 +74,11 @@ descriptors <- descriptors[, - 14]
 ```
 Partial least squares regression (pls) [3] was chosen to perform regression from descriptors to boilingpoint. The dataset is split into training and testing dataset after randomization. pls regression is performed with crossvalidation. Root mean squared error of prediction and correlation of prediction with true results is chosen to assess the performance of the regression model. It is also being compared with the null model which is taking the average of all boilingpoints in the training set to predict the test set. 
 
-Additionally, a support vector machine regression is performed in order to assess reproducibility of the results using a different method. 
+Additionally, a support vector machine regression (package e1071, [5]) is performed in order to assess reproducibility of the results using a different method. 
 
 # Results
 When taking the four descriptors that are set by default, the RMSEP on the training set indicates that using two principle components will predict boilingpoints on the testset with reasonable accuracy. Plots and numbers report on the performance of the model. 
+RMSE of prediction for the nullmodel created by plsr, the nullmodel created independently, pls regression and support vector machine regression are reported below. 
 ```{r pls regression}
 # 3. Perform pls regression 
 
@@ -140,17 +141,25 @@ plot(correlationPredictedvActual, type = "p", xlab = "Number of principle compon
 svmModel <- svm(train$QueryResults.bp ~., data = train)
 svm.predicted <- predict(svmModel, test)
 errorbySVM <- rmse(svm.predicted, ytest)
+plot(svm.predicted, ytest, xlab = "Predicted Boiling Point [K]", ylab = "Measured Boiling Point [K]", main = "Regression using SVM")
+correlationSVMprediction <- cor(svm.predicted, ytest)
 ```
+
 ``` {r, echo = FALSE}
 print(paste("Error of the nullmodel built by plsr:", round(mean(errorPLSregression$val[,,1])),"K"))
 print(paste("Error of the nullmodel:", round(errorofNullmodel), "K"))
 print(paste("Error of pls regression using two PCs:", round(mean(errorPLSregression$val[,,3])),"K"))
 print(paste("Error of the support vector machine regression:", round(errorbySVM), "K"))
+print(paste("Correlation of predicted boilingoints using pls regression (2 PCs) with measured data:", round(correlationPredictedvActual[2], digits = 3)))
+print(paste("Correlation of predicted boilingpoints using SVM regression with measured data:", round(correlationSVMprediction, digits = 3)))
 ```
 
 
 # Discussion
-
+The two nullmodels produce fairly similar results with a large error of over 200K. Thus it can be stated that the nullmodel in either case does not accurate predictions when the boilingpoints range from roughly 100K to 1000K. 
+However, the pls model with two PCs and the SVM regression model produce very similar and more accurate results with an error of 49K and 46K, respectively. That indicates that the two specific models have a similar capability of learning from the data and predicting the boilingpoint. Two PCs where selected as model, because the error on the trainingset does not drop significantly when using more principle components. 
+Correlation between predicted boilingpoints and measured boilingpoints is 0.969 and 0.982 for pls and svm, respectively. These numbers show that this result is reproducible. Furthermore, it shows that using few principle components prevents from overfitting to the data. 
+It is important to keep in my mind that prediction accuracy and quality of the models are largely effected by the number and quality of predictors (i.e. chemical descriptors). Furthermore, it needs to be stressed that due to the fairly small size of the dataset, randomization can have a large effect on the quality of the models after splitting into trainingset and testingset. 
 # References 
 
 [1] Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
@@ -164,3 +173,8 @@ print(paste("Error of the support vector machine regression:", round(errorbySVM)
 [4] Mikhail Popov (2017). WikidataQueryServiceR: API Client Library for 'Wikidata Query
   Service'. R package version 0.1.1.
   https://CRAN.R-project.org/package=WikidataQueryServiceR
+
+[5] David Meyer, Evgenia Dimitriadou, Kurt Hornik, Andreas Weingessel and
+  Friedrich Leisch (2019). e1071: Misc Functions of the Department of
+  Statistics, Probability Theory Group (Formerly: E1071), TU Wien. R
+  package version 1.7-1. https://CRAN.R-project.org/package=e1071
