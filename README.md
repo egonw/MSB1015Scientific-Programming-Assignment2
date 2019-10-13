@@ -30,6 +30,12 @@ Please also be aware of the following points:
 * The seed in set.seed() will effect how the data is split for building of the model. It must therefore be kept at the same number among different models when it is intended to compare those.
 * A description of how descriptors can be added or removed is included in the .Rmd file. The selection of descriptors will have an effect on the predictive quality of the model which is built subsequently.
 
+# Query
+
+The query may be subject to change depending on what the user of the code wants to query from wikidata.
+
+The current query queries for compound, compoundLabel, boiling point, boiling point unit, boiling point unit label and chemical smiles (?CC). All of these need to fit into the chemical class alkanes. The names of these entities in the query matter for further analysis of the data. Thus some might need to be changed, if e.g. other information than smiles is subject to query from wikidata. 
+
 # Data Analysis
 
 Information about the data analysis can be found in the file Assignment2.Rmd as well as on the webpage linked to this repository.
