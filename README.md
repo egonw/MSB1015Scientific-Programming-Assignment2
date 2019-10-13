@@ -37,3 +37,8 @@ Please also be aware of the following points:
 You can access the assignment HTML page through Github pages on the following URL:
 
 https://prstolpe.github.io/MSB1015Scientific-Programming-Assignment2/
+
+# Author
+
+Main author: Raphael Stolpe
+Supervisor: Egon Willighagen
