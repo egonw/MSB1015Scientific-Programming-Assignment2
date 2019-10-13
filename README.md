@@ -6,7 +6,9 @@ In order to run this code, it is necessary for the user to have the following pr
 
 1. Make sure you have a modern web browser (e.g. Chrome)
 2. Make sure you have preferably the latest version of R installed on your computer (https://www.r-project.org/).
-··· It is recommended to also install rstudio (https://rstudio.com/)
+
+It is recommended to also install rstudio (https://rstudio.com/)
+
 3. Make sure you have at least enough storage to install packages in R.
 4. Download this repository from the releases tab
 5. Unzip the compressed file.
@@ -20,7 +22,7 @@ and therefore need to be run beforehands. It is possible to run all code at once
 Please also be aware of the following points:
 * Make sure a version of Java is installed that is compatible with the rJava package.
 * If problems arise during installation of packages, the code will not run without problems, because all packages are required.
-* Make sure that all .R files which include functions are in the same directory as the .Rmd file. Those functions need to be loaded into the environment.
+* Make sure that the folder 'functions' which includes functions are in the same directory as the .Rmd file. Those functions need to be loaded into the environment.
 
 ## Remarks to Reproducibility:
 

@@ -21,9 +21,9 @@ library(Metrics)
 library(pls)
 library(graphics)
 library(e1071)
-source("Unit_conversion_to_Kelvin.R")
-source("computeDescriptors.R")
-source("removeConstantDesc.R")
+source("functions/Unit_conversion_to_Kelvin.R")
+source("functions/computeDescriptors.R")
+source("functions/removeConstantDesc.R")
 ```
 # Methods
 ## Query
