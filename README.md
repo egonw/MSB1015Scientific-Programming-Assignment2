@@ -6,7 +6,7 @@ In order to run this code, it is necessary for the user to have the following pr
 
 1. Make sure you have a modern web browser (e.g. Chrome)
 2. Make sure you have preferably the latest version of R installed on your computer (https://www.r-project.org/).
-..1. It is recommended to also install rstudio (https://rstudio.com/)
+··* It is recommended to also install rstudio (https://rstudio.com/)
 3. Make sure you have at least enough storage to install packages in R.
 4. Download this repository from the releases tab
 5. Unzip the compressed file.
@@ -31,3 +31,7 @@ Please also be aware of the following points:
 # Data Analysis
 
 # GitHub pages
+
+You can access the assignment HTML page through Github pages on the following URL:
+
+https://prstolpe.github.io/MSB1015Scientific-Programming-Assignment2/
