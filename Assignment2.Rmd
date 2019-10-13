@@ -1,7 +1,7 @@
 ---
 title: "Assignment2"
 author: "Raphael Stolpe"
-date: "9/23/2019"
+date: "10/13/2019"
 output: html_notebook
 ---
 # Introduction
