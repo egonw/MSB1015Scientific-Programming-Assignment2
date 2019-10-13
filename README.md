@@ -21,9 +21,11 @@ Please also be aware of the following points:
 * Make sure a version of Java is installed that is compatible with the rJava package.
 * If problems arise during installation of packages, the code will not run without problems, because all packages are required.
 * Make sure that all .R files which include functions are in the same directory as the .Rmd file. Those functions need to be loaded into the environment.
-Remarks to Reproducibility:
-* The query should return 134 results
-* The seed in set.seed() will effect how the data is split for building of the model. It must therefore kept the same among different models when it is intended to compare those.
+
+## Remarks to Reproducibility:
+
+* The query should return 134 results.
+* The seed in set.seed() will effect how the data is split for building of the model. It must therefore be kept at the same number among different models when it is intended to compare those.
 * A description of how descriptors can be added or removed is included in the .Rmd file. The selection of descriptors will have an effect on the predictive quality of the model which is built subsequently.
 
 # Data Analysis
