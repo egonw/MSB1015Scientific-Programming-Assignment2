@@ -160,6 +160,7 @@ The two nullmodels produce fairly similar results with a large error of over 200
 However, the pls model with two PCs and the SVM regression model produce very similar and more accurate results with an error of 49K and 46K, respectively. That indicates that the two specific models have a similar capability of learning from the data and predicting the boilingpoint. Two PCs where selected as model, because the error on the trainingset does not drop significantly when using more principle components. 
 Correlation between predicted boilingpoints and measured boilingpoints is 0.969 and 0.982 for pls and svm, respectively. These numbers show that this result is reproducible. Furthermore, it shows that using few principle components prevents from overfitting to the data. 
 It is important to keep in my mind that prediction accuracy and quality of the models are largely effected by the number and quality of predictors (i.e. chemical descriptors). Furthermore, it needs to be stressed that due to the fairly small size of the dataset, randomization can have a large effect on the quality of the models after splitting into trainingset and testingset. 
+
 # References 
 
 [1] Wiener, H. (1947). Structural Determination of Paraffin Boiling Points. Journal of the American Chemical Society, 69(1), 17–20. https://doi.org/10.1021/ja01193a005
