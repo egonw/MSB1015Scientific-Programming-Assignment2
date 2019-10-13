@@ -5,7 +5,7 @@ This repository contains the second assignment for the Scientific Programming co
 In order to run this code, it is necessary for the user to have the following prerequisites:
 
 1. Make sure you have a modern web browser (e.g. Chrome)
-2. Make sure you have preferably the latest version of R installed on your computer.
+2. Make sure you have preferably the latest version of R installed on your computer. (https://www.r-project.org/)
 3. Make sure you have at least enough storage to install packages in R.
 4. Download this repository from the releases tab
 5. Unzip the compressed file.
